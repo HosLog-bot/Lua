@@ -1,11 +1,11 @@
 --!nocheck
 --[[
-	KopoLib 1.0.0 - UI library for Roblox (Luau)
-	Theme: Sand | Single-file module
+	RYV Client 1.0.0 - UI library for Roblox (Luau)
+	Theme: Nebula | Single-file module
 
 	Usage:
 		local Library = loadstring(game:HttpGet("RAW_URL"))()
-		local Window = Library:CreateWindow({ Name = "KopoLib", SaveConfig = true })
+		local Window = Library:CreateWindow({ Name = "RYV Client", SaveConfig = true })
 		local Tab = Window:CreateTab("Home")
 		local Section = Tab:CreateSection("Main")
 		Section:CreateButton({ Name = "Hello", Callback = function() print("hi") end })
@@ -30,23 +30,35 @@ local ContentProvider = game:GetService("ContentProvider")
 local ICON_ID = "rbxassetid://77141434675284"
 
 local Theme = {
-	Background = Color3.fromRGB(236, 226, 206),
-	Topbar = Color3.fromRGB(224, 209, 182),
-	Sidebar = Color3.fromRGB(228, 215, 191),
-	Element = Color3.fromRGB(247, 241, 228),
-	ElementHover = Color3.fromRGB(252, 248, 238),
-	Stroke = Color3.fromRGB(200, 181, 150),
-	Track = Color3.fromRGB(214, 198, 168),
-	Accent = Color3.fromRGB(158, 108, 62),
-	AccentDark = Color3.fromRGB(128, 86, 48),
-	AccentSoft = Color3.fromRGB(235, 218, 188),
-	Text = Color3.fromRGB(66, 50, 34),
-	SubText = Color3.fromRGB(128, 108, 84),
-	OnAccent = Color3.fromRGB(252, 247, 236),
-	Success = Color3.fromRGB(104, 140, 76),
-	Warning = Color3.fromRGB(205, 150, 52),
-	Danger = Color3.fromRGB(176, 78, 58),
+	Background = Color3.fromRGB(16, 14, 28),
+	Topbar = Color3.fromRGB(24, 20, 44),
+	TopbarA = Color3.fromRGB(46, 28, 92),
+	TopbarB = Color3.fromRGB(20, 18, 40),
+	Sidebar = Color3.fromRGB(20, 17, 36),
+	Element = Color3.fromRGB(30, 26, 52),
+	ElementHover = Color3.fromRGB(42, 35, 74),
+	Stroke = Color3.fromRGB(56, 48, 96),
+	Track = Color3.fromRGB(44, 38, 74),
+	Accent = Color3.fromRGB(139, 92, 246),
+	AccentDark = Color3.fromRGB(109, 64, 214),
+	AccentSoft = Color3.fromRGB(54, 40, 104),
+	AccentText = Color3.fromRGB(196, 176, 255),
+	Accent2 = Color3.fromRGB(34, 211, 238),
+	Accent3 = Color3.fromRGB(244, 114, 182),
+	Text = Color3.fromRGB(240, 236, 255),
+	SubText = Color3.fromRGB(152, 144, 192),
+	OnAccent = Color3.fromRGB(255, 255, 255),
+	Success = Color3.fromRGB(74, 222, 128),
+	Warning = Color3.fromRGB(251, 191, 36),
+	Danger = Color3.fromRGB(248, 113, 113),
 }
+Theme.Gradient = ColorSequence.new(Theme.Accent, Theme.Accent2)
+Theme.Ring = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Theme.Accent),
+	ColorSequenceKeypoint.new(0.35, Theme.Accent2),
+	ColorSequenceKeypoint.new(0.7, Theme.Accent3),
+	ColorSequenceKeypoint.new(1, Theme.Accent),
+})
 
 local FONT = Enum.Font.Gotham
 local FONT_MED = Enum.Font.GothamMedium
@@ -56,6 +68,8 @@ local TI_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local TI_MED = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TI_SLOW = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TI_INSTANT = TweenInfo.new(0)
+local TI_BACK = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local TI_POP = TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
 local MAX_NOTIFICATIONS = 5
 
@@ -63,7 +77,7 @@ local MAX_NOTIFICATIONS = 5
 -- Generic helpers
 ----------------------------------------------------------------------
 local function fail(message, level)
-	error("[KopoLib] " .. message, (level or 1) + 1)
+	error("[RYV Client] " .. message, (level or 1) + 1)
 end
 
 local function normalizeCfg(cfg, caller, stringKey)
@@ -97,7 +111,7 @@ local function fire(fn, ...)
 	task.spawn(function(...)
 		local ok, err = pcall(fn, ...)
 		if not ok then
-			warn("[KopoLib] callback error: " .. tostring(err))
+			warn("[RYV Client] callback error: " .. tostring(err))
 		end
 	end, ...)
 end
@@ -186,6 +200,14 @@ local function padding(inst, top, right, bottom, left)
 	})
 end
 
+local function gradient(inst, rotation, sequence)
+	return create("UIGradient", {
+		Color = sequence or Theme.Gradient,
+		Rotation = rotation or 0,
+		Parent = inst,
+	})
+end
+
 local function newLabel(props)
 	local base = {
 		BackgroundTransparency = 1,
@@ -221,9 +243,17 @@ end
 local function hoverColor(trigger, target, normal, hovered)
 	trigger.MouseEnter:Connect(function()
 		tween(target, { BackgroundColor3 = hovered }, TI_FAST)
+		local outline = target:FindFirstChildOfClass("UIStroke")
+		if outline then
+			tween(outline, { Color = Theme.Accent }, TI_MED)
+		end
 	end)
 	trigger.MouseLeave:Connect(function()
 		tween(target, { BackgroundColor3 = normal }, TI_FAST)
+		local outline = target:FindFirstChildOfClass("UIStroke")
+		if outline then
+			tween(outline, { Color = Theme.Stroke }, TI_MED)
+		end
 	end)
 end
 
@@ -259,7 +289,7 @@ local function createScreenGui(name)
 		end)
 	end
 	local gui = create("ScreenGui", {
-		Name = "KopoLib",
+		Name = "RYVClient",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = 999,
@@ -665,7 +695,7 @@ function SectionClass:CreateButton(cfg)
 	local frame = el.Frame
 
 	local hit = newButton({ Name = "Hit", Size = UDim2.fromScale(1, 1), Parent = frame })
-	create("TextLabel", {
+	local chevron = create("TextLabel", {
 		Name = "Chevron",
 		BackgroundTransparency = 1,
 		Text = ">",
@@ -678,11 +708,21 @@ function SectionClass:CreateButton(cfg)
 		Parent = frame,
 	})
 	hoverColor(hit, frame, Theme.Element, Theme.ElementHover)
+	local press = create("UIScale", { Scale = 1, Parent = frame })
+	hit.MouseEnter:Connect(function()
+		tween(chevron, { Position = UDim2.new(1, -8, 0.5, 0) }, TI_BACK)
+	end)
+	hit.MouseLeave:Connect(function()
+		tween(chevron, { Position = UDim2.new(1, -12, 0.5, 0) }, TI_BACK)
+		tween(press, { Scale = 1 }, TI_BACK)
+	end)
 	hit.MouseButton1Down:Connect(function()
 		tween(frame, { BackgroundColor3 = Theme.AccentSoft }, TI_FAST)
+		tween(press, { Scale = 0.97 }, TI_FAST)
 	end)
 	hit.MouseButton1Up:Connect(function()
 		tween(frame, { BackgroundColor3 = Theme.ElementHover }, TI_FAST)
+		tween(press, { Scale = 1 }, TI_BACK)
 	end)
 	hit.MouseButton1Click:Connect(function()
 		fire(callback)
@@ -719,6 +759,16 @@ function SectionClass:CreateToggle(cfg)
 		Parent = frame,
 	})
 	corner(track, 9)
+	local trackFill = create("Frame", {
+		Name = "Fill",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Parent = track,
+	})
+	corner(trackFill, 9)
+	gradient(trackFill, 0)
 	local knob = create("Frame", {
 		Name = "Knob",
 		BackgroundColor3 = Theme.OnAccent,
@@ -733,9 +783,8 @@ function SectionClass:CreateToggle(cfg)
 	hoverColor(hit, frame, Theme.Element, Theme.ElementHover)
 
 	local function render(instant)
-		local info = instant and TI_INSTANT or TI_MED
-		tween(track, { BackgroundColor3 = value and Theme.Accent or Theme.Track }, info)
-		tween(knob, { Position = value and UDim2.new(1, -16, 0.5, 0) or UDim2.new(0, 2, 0.5, 0) }, info)
+		tween(trackFill, { BackgroundTransparency = value and 0 or 1 }, instant and TI_INSTANT or TI_MED)
+		tween(knob, { Position = value and UDim2.new(1, -16, 0.5, 0) or UDim2.new(0, 2, 0.5, 0) }, instant and TI_INSTANT or TI_BACK)
 	end
 
 	local function setValue(v, source)
@@ -826,7 +875,7 @@ function SectionClass:CreateSlider(cfg)
 	local valueLabel = newLabel({
 		Name = "Value",
 		Text = format(value),
-		TextColor3 = Theme.Accent,
+		TextColor3 = Theme.AccentText,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -12, 0, 6),
@@ -851,6 +900,8 @@ function SectionClass:CreateSlider(cfg)
 		Parent = track,
 	})
 	corner(fill, 3)
+	fill.BackgroundColor3 = Color3.new(1, 1, 1)
+	gradient(fill, 0)
 	local knob = create("Frame", {
 		Name = "Knob",
 		BackgroundColor3 = Theme.OnAccent,
@@ -1121,7 +1172,7 @@ function SectionClass:CreateDropdown(cfg)
 			local selected = selection[item] == true
 			tween(button, {
 				BackgroundColor3 = selected and Theme.AccentSoft or Theme.Element,
-				TextColor3 = selected and Theme.Accent or Theme.Text,
+				TextColor3 = selected and Theme.AccentText or Theme.Text,
 			}, TI_FAST)
 		end
 	end
@@ -1574,12 +1625,23 @@ function TabClass:CreateSection(cfg)
 		Text = string.upper(name),
 		Font = FONT_BOLD,
 		TextSize = 11,
-		TextColor3 = Theme.Accent,
+		TextColor3 = Theme.AccentText,
 		Size = UDim2.new(1, 0, 0, 18),
 		LayoutOrder = 0,
 		Parent = frame,
 	})
-	padding(header, 0, 0, 0, 4)
+	padding(header, 0, 0, 0, 12)
+	local headerBar = create("Frame", {
+		Name = "Bar",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -10, 0.5, 0),
+		Size = UDim2.fromOffset(3, 12),
+		Parent = header,
+	})
+	corner(headerBar, 2)
+	gradient(headerBar, 90)
 
 	local section = setmetatable({
 		Name = name,
@@ -1603,12 +1665,15 @@ function TabClass:_setSelected(selected)
 	self.Selected = selected
 	tween(self.Button, {
 		BackgroundTransparency = selected and 0 or 1,
-		BackgroundColor3 = Theme.Element,
+		BackgroundColor3 = Theme.AccentSoft,
 	}, TI_MED)
-	tween(self.Indicator, { BackgroundTransparency = selected and 0 or 1 }, TI_MED)
+	tween(self.Indicator, {
+		BackgroundTransparency = selected and 0 or 1,
+		Size = selected and UDim2.fromOffset(3, 18) or UDim2.fromOffset(3, 6),
+	}, TI_POP)
 	tween(self.Label, { TextColor3 = selected and Theme.Text or Theme.SubText }, TI_MED)
 	if self.IconLabel then
-		tween(self.IconLabel, { ImageColor3 = selected and Theme.Accent or Theme.SubText }, TI_MED)
+		tween(self.IconLabel, { ImageColor3 = selected and Theme.AccentText or Theme.SubText }, TI_MED)
 	end
 	if selected then
 		self.Page.Position = UDim2.fromOffset(0, 12)
@@ -1717,12 +1782,19 @@ function WindowClass:_buildLoader()
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(280, 170),
+		Size = UDim2.fromOffset(280, 196),
 		ZIndex = 20,
 		Parent = self.Gui,
 	})
 	corner(loader, 12)
-	stroke(loader, Theme.Stroke, 1)
+	local loaderStroke = stroke(loader, Color3.new(1, 1, 1), 1.5)
+	local loaderRing = gradient(loaderStroke, 0, Theme.Ring)
+	self._loaderSpin = TweenService:Create(
+		loaderRing,
+		TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1),
+		{ Rotation = 360 }
+	)
+	self._loaderSpin:Play()
 	local scale = create("UIScale", { Scale = 1, Parent = loader })
 	local icon = create("ImageLabel", {
 		Name = "Icon",
@@ -1733,14 +1805,27 @@ function WindowClass:_buildLoader()
 		Size = UDim2.fromOffset(60, 60),
 		Parent = loader,
 	})
+	local nameLabel = newLabel({
+		Name = "Name",
+		Text = self.Name,
+		Font = FONT_BOLD,
+		TextSize = 18,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.new(0, 10, 0, 94),
+		Size = UDim2.new(1, -20, 0, 24),
+		Parent = loader,
+	})
+	gradient(nameLabel, 0, Theme.Ring)
 	local text = newLabel({
 		Name = "Status",
 		Text = "",
 		Font = FONT_MED,
-		TextSize = 15,
+		TextSize = 14,
+		TextColor3 = Theme.SubText,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.new(0, 10, 0, 100),
-		Size = UDim2.new(1, -20, 0, 36),
+		Position = UDim2.new(0, 10, 0, 122),
+		Size = UDim2.new(1, -20, 0, 28),
 		TextWrapped = true,
 		Parent = loader,
 	})
@@ -1762,6 +1847,8 @@ function WindowClass:_buildLoader()
 		Parent = barBack,
 	})
 	corner(barFill, 2)
+	barFill.BackgroundColor3 = Color3.new(1, 1, 1)
+	gradient(barFill, 0)
 
 	self.Loader = loader
 	self.LoaderScale = scale
@@ -1787,7 +1874,7 @@ function WindowClass:_setLoaderText(message, color, progress)
 		return
 	end
 	label.Text = message
-	label.TextColor3 = color or Theme.Text
+	label.TextColor3 = color or Theme.AccentText
 	tween(label, { TextTransparency = 0 }, TI_FAST)
 	if progress then
 		tween(self.LoaderFill, { Size = UDim2.fromScale(progress, 1) }, TI_SLOW)
@@ -1809,7 +1896,14 @@ function WindowClass:_buildUI()
 		Parent = gui,
 	})
 	corner(main, 10)
-	stroke(main, Theme.Stroke, 1)
+	local mainStroke = stroke(main, Color3.new(1, 1, 1), 1.5)
+	local mainRing = gradient(mainStroke, 0, Theme.Ring)
+	self._ringSpin = TweenService:Create(
+		mainRing,
+		TweenInfo.new(6, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1),
+		{ Rotation = 360 }
+	)
+	self._ringSpin:Play()
 	local scale = create("UIScale", { Scale = 0.92, Parent = main })
 	self.Main = main
 	self.Scale = scale
@@ -1830,6 +1924,8 @@ function WindowClass:_buildUI()
 		Size = UDim2.new(1, 0, 0, 1),
 		Parent = topbar,
 	})
+	topbar.BackgroundColor3 = Color3.new(1, 1, 1)
+	gradient(topbar, 0, ColorSequence.new(Theme.TopbarA, Theme.TopbarB))
 	self.TopIcon = create("ImageLabel", {
 		Name = "Icon",
 		BackgroundTransparency = 1,
@@ -1861,6 +1957,14 @@ function WindowClass:_buildUI()
 		Parent = topbar,
 	})
 
+	local titleLabel = topbar:FindFirstChild("Title")
+	titleLabel.TextColor3 = Color3.new(1, 1, 1)
+	gradient(titleLabel, 0, ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(196, 176, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 225, 250)),
+	}))
+
 	local function topButton(text, rightOffset, hoverTint)
 		local button = newButton({
 			Name = text,
@@ -1883,7 +1987,7 @@ function WindowClass:_buildUI()
 		end)
 		return button
 	end
-	local closeButton = topButton("X", -8, Color3.fromRGB(226, 170, 150))
+	local closeButton = topButton("X", -8, Theme.Danger)
 	local hideButton = topButton("-", -40, Theme.AccentSoft)
 	closeButton.MouseButton1Click:Connect(function()
 		if self.Settings.HideCloseAlert then
@@ -1934,7 +2038,7 @@ function WindowClass:_buildUI()
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = tabList })
 	newLabel({
 		Name = "Version",
-		Text = "KopoLib v" .. KopoLib.Version,
+		Text = "RYV Client v" .. KopoLib.Version,
 		Font = FONT,
 		TextSize = 10,
 		TextColor3 = Theme.SubText,
@@ -2250,7 +2354,7 @@ function WindowClass:_runLoader()
 		local ok, err = pcall(step[2])
 		if not ok then
 			table.insert(errors, tostring(err))
-			warn("[KopoLib] initialization step '" .. step[1] .. "' failed: " .. tostring(err))
+			warn("[RYV Client] initialization step '" .. step[1] .. "' failed: " .. tostring(err))
 			if animate then
 				self:_setLoaderText("Error: " .. tostring(err):sub(1, 80), Theme.Danger)
 				task.wait(2.2)
@@ -2284,6 +2388,10 @@ function WindowClass:_reveal()
 		self._pulse:Cancel()
 		self._pulse = nil
 	end
+	if self._loaderSpin then
+		self._loaderSpin:Cancel()
+		self._loaderSpin = nil
+	end
 	if self.Loader then
 		local loader = self.Loader
 		tween(self.LoaderScale, { Scale = 0.9 }, TI_MED)
@@ -2296,8 +2404,8 @@ function WindowClass:_reveal()
 	end
 	self.Visible = true
 	self.Main.Visible = true
-	self.Scale.Scale = 0.92
-	tween(self.Scale, { Scale = 1 }, TI_SLOW)
+	self.Scale.Scale = 0.85
+	tween(self.Scale, { Scale = 1 }, TI_POP)
 	if not self.ActiveTab and self.Tabs[1] then
 		self:SelectTab(self.Tabs[1])
 	end
@@ -2349,10 +2457,12 @@ function WindowClass:_makeTab(name, icon, order)
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 0, 0.5, 0),
-		Size = UDim2.fromOffset(3, 16),
+		Size = UDim2.fromOffset(3, 6),
 		Parent = button,
 	})
 	corner(indicator, 2)
+	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
+	gradient(indicator, 90)
 	local iconLabel
 	local image = toImage(icon)
 	if image ~= "" then
@@ -2475,8 +2585,8 @@ function WindowClass:SetVisible(visible)
 	local token = self._visibleToken
 	if visible then
 		self.Main.Visible = true
-		self.Scale.Scale = 0.94
-		tween(self.Scale, { Scale = 1 }, TI_MED)
+		self.Scale.Scale = 0.9
+		tween(self.Scale, { Scale = 1 }, TI_POP)
 	else
 		self:_setListening(nil)
 		tween(self.Scale, { Scale = 0.94 }, TI_FAST)
@@ -2569,9 +2679,9 @@ function WindowClass:Destroy()
 		end)
 	end
 	table.clear(self._conns)
-	if self._pulse then
+	for _, spin in ipairs({ self._pulse, self._loaderSpin, self._ringSpin }) do
 		pcall(function()
-			self._pulse:Cancel()
+			spin:Cancel()
 		end)
 	end
 	for _, note in ipairs(table.clone(self._notes)) do
@@ -2616,8 +2726,14 @@ function WindowClass:Notify(cfg)
 	if not isFinite(duration) or duration < 0 then
 		fail("Notify: 'Duration' must be a number >= 0 (0 keeps it until dismissed)", 2)
 	end
-	local colors = { Info = Theme.Accent, Success = Theme.Success, Warning = Theme.Warning, Error = Theme.Danger }
-	local color = colors[ntype] or colors.Info
+	local styles = {
+		Info = { Theme.Accent2, "i" },
+		Success = { Theme.Success, "OK" },
+		Warning = { Theme.Warning, "!" },
+		Error = { Theme.Danger, "x" },
+	}
+	local style = styles[ntype] or styles.Info
+	local color, glyph = style[1], style[2]
 
 	self._noteId = self._noteId + 1
 	local holder = create("Frame", {
@@ -2634,20 +2750,38 @@ function WindowClass:Notify(cfg)
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.new(1, 40, 0, 0),
+		Position = UDim2.new(1, 60, 0, 0),
 		ClipsDescendants = true,
 		Active = true,
 		Parent = holder,
 	})
-	corner(card, 8)
-	stroke(card, Theme.Stroke, 1)
-	create("Frame", {
-		Name = "Accent",
+	corner(card, 10)
+	local cardStroke = stroke(card, color, 1.5, 0)
+	local cardScale = create("UIScale", { Scale = 0.86, Parent = card })
+	gradient(card, 0, ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 184, 214)))
+
+	local badge = create("Frame", {
+		Name = "Badge",
 		BackgroundColor3 = color,
 		BorderSizePixel = 0,
-		Size = UDim2.new(0, 3, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(26, 26),
+		Size = UDim2.fromOffset(26, 26),
 		Parent = card,
 	})
+	corner(badge, 13)
+	local badgeScale = create("UIScale", { Scale = 0, Parent = badge })
+	newLabel({
+		Name = "Glyph",
+		Text = glyph,
+		Font = FONT_BOLD,
+		TextSize = #glyph > 1 and 10 or 15,
+		TextColor3 = Color3.fromRGB(20, 16, 36),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.fromScale(1, 1),
+		Parent = badge,
+	})
+
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
@@ -2655,7 +2789,7 @@ function WindowClass:Notify(cfg)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = card,
 	})
-	padding(body, 9, 12, 12, 14)
+	padding(body, 11, 12, 15, 50)
 	create("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder, Parent = body })
 	newLabel({
 		Name = "Title",
@@ -2687,11 +2821,10 @@ function WindowClass:Notify(cfg)
 		bar = create("Frame", {
 			Name = "Progress",
 			BackgroundColor3 = color,
-			BackgroundTransparency = 0.35,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 2),
+			Size = UDim2.new(1, 0, 0, 3),
 			ZIndex = 2,
 			Parent = card,
 		})
@@ -2708,7 +2841,8 @@ function WindowClass:Notify(cfg)
 			table.remove(self._notes, index)
 		end
 		if card.Parent then
-			tween(card, { Position = UDim2.new(1, 40, 0, 0) }, TI_MED)
+			tween(card, { Position = UDim2.new(1, 60, 0, 0) }, TI_MED)
+			tween(cardScale, { Scale = 0.9 }, TI_MED)
 		end
 		task.delay(0.25, function()
 			if holder.Parent then
@@ -2722,15 +2856,29 @@ function WindowClass:Notify(cfg)
 			dismiss()
 		end
 	end)
+	card.MouseEnter:Connect(function()
+		tween(cardStroke, { Transparency = 0 }, TI_FAST)
+	end)
+	card.MouseLeave:Connect(function()
+		tween(cardStroke, { Transparency = 0.55 }, TI_MED)
+	end)
 
 	table.insert(self._notes, note)
 	while #self._notes > MAX_NOTIFICATIONS do
 		self._notes[1].Dismiss()
 	end
 
-	tween(card, { Position = UDim2.new(0, 0, 0, 0) }, TI_SLOW)
+	-- Entrance: slide in with overshoot, glow flash on the border, badge pops.
+	tween(card, { Position = UDim2.new(0, 0, 0, 0) }, TI_POP)
+	tween(cardScale, { Scale = 1 }, TI_POP)
+	tween(cardStroke, { Transparency = 0.55 }, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out))
+	task.delay(0.14, function()
+		if not note.dismissed and badge.Parent then
+			tween(badgeScale, { Scale = 1 }, TI_POP)
+		end
+	end)
 	if bar then
-		tween(bar, { Size = UDim2.new(0, 0, 0, 2) }, TweenInfo.new(duration, Enum.EasingStyle.Linear))
+		tween(bar, { Size = UDim2.new(0, 0, 0, 3) }, TweenInfo.new(duration, Enum.EasingStyle.Linear))
 		task.delay(duration, dismiss)
 	end
 	return note
@@ -3104,7 +3252,7 @@ function WindowClass:_buildConfigTab(tab)
 			if type(setclipboard) == "function" and pcall(setclipboard, json) then
 				report(true, "Config copied to the clipboard.")
 			else
-				print("[KopoLib] exported config:\n" .. json)
+				print("[RYV Client] exported config:\n" .. json)
 				report(true, "Clipboard unavailable; the JSON was printed to the console.", "Info")
 			end
 		end,
@@ -3130,7 +3278,7 @@ function WindowClass:_buildSettingsTab(tab)
 		Description = "Key used to hide and show the interface.",
 		Default = self.ToggleKey,
 		AllowNone = false,
-		Flag = "KopoLib.ToggleKey",
+		Flag = "RYV.ToggleKey",
 		ChangedCallback = function(key)
 			if key and key ~= Enum.KeyCode.Unknown then
 				self.ToggleKey = key
@@ -3141,7 +3289,7 @@ function WindowClass:_buildSettingsTab(tab)
 		Name = "Hide Close Alert",
 		Description = "Close without asking for confirmation.",
 		Default = self.Settings.HideCloseAlert,
-		Flag = "KopoLib.HideCloseAlert",
+		Flag = "RYV.HideCloseAlert",
 		Notify = false,
 		Callback = function(value)
 			self.Settings.HideCloseAlert = value
@@ -3159,7 +3307,7 @@ function WindowClass:_buildSettingsTab(tab)
 		Name = "Notifications",
 		Description = "Master switch for all notifications.",
 		Default = self.Settings.Notifications,
-		Flag = "KopoLib.Notifications",
+		Flag = "RYV.Notifications",
 		Notify = false,
 		Callback = function(value)
 			self.Settings.Notifications = value
@@ -3169,7 +3317,7 @@ function WindowClass:_buildSettingsTab(tab)
 		Name = "Change Notifications",
 		Description = "Notify when an option is enabled or disabled.",
 		Default = self.Settings.NotifyOnChange,
-		Flag = "KopoLib.NotifyOnChange",
+		Flag = "RYV.NotifyOnChange",
 		Notify = false,
 		Callback = function(value)
 			self.Settings.NotifyOnChange = value
@@ -3178,7 +3326,7 @@ function WindowClass:_buildSettingsTab(tab)
 	notes:CreateButton({
 		Name = "Test Notification",
 		Callback = function()
-			self:Notify({ Title = "KopoLib", Content = "This is a test notification.", Duration = 3 })
+			self:Notify({ Title = "RYV Client", Content = "This is a test notification.", Duration = 3 })
 		end,
 	})
 
@@ -3203,7 +3351,7 @@ end
 ----------------------------------------------------------------------
 function KopoLib:CreateWindow(cfg)
 	local c = normalizeCfg(cfg, "CreateWindow")
-	local name = opt(c, "Name", "string", "KopoLib")
+	local name = opt(c, "Name", "string", "RYV Client")
 	local saveConfig = opt(c, "SaveConfig", "boolean", false)
 	local toggleKey = opt(c, "ToggleKey", "EnumItem", Enum.KeyCode.RightControl)
 	if toggleKey.EnumType ~= Enum.KeyCode then
@@ -3236,7 +3384,7 @@ function KopoLib:CreateWindow(cfg)
 		Subtitle = options.Subtitle,
 		Icon = iconId ~= nil and toImage(iconId) or ICON_ID,
 		ToggleKey = toggleKey,
-		ConfigFolder = sanitizeFolder(opt(c, "ConfigFolder", "string", "KopoLib"), "KopoLib"),
+		ConfigFolder = sanitizeFolder(opt(c, "ConfigFolder", "string", "RYVClient"), "RYVClient"),
 		ConfigName = sanitizeName(opt(c, "ConfigFile", "string", "default"), "default"),
 		ConfigFormat = format,
 		Settings = {
@@ -3275,7 +3423,7 @@ function KopoLib:CreateWindow(cfg)
 		window:_bindInput()
 	end)
 	if not ok then
-		warn("[KopoLib] failed to build the interface: " .. tostring(err))
+		warn("[RYV Client] failed to build the interface: " .. tostring(err))
 		if window.Loader then
 			window:_setLoaderText("Error: " .. tostring(err):sub(1, 80), Theme.Danger)
 			task.delay(3, function()
@@ -3294,14 +3442,14 @@ function KopoLib:CreateWindow(cfg)
 			window:_runLoader()
 		end)
 		if not okRun then
-			warn("[KopoLib] loader failed: " .. tostring(errRun))
+			warn("[RYV Client] loader failed: " .. tostring(errRun))
 			window:_reveal()
 		end
 	end)
 	-- Watchdog: never stay stuck on the loading screen.
 	task.delay(25, function()
 		if not window._destroyed and not window._revealed then
-			warn("[KopoLib] initialization timed out; showing the interface anyway")
+			warn("[RYV Client] initialization timed out; showing the interface anyway")
 			window:_reveal()
 		end
 	end)
@@ -3312,7 +3460,7 @@ end
 function KopoLib:Notify(cfg)
 	local window = KopoLib.Windows[#KopoLib.Windows]
 	if not window then
-		warn("[KopoLib] Notify called without an active window")
+		warn("[RYV Client] Notify called without an active window")
 		return nil
 	end
 	return window:Notify(cfg)
