@@ -13,7 +13,7 @@ local Config = {
     -- [3.1] Key links shown when pressing GET KEY (paste your links here)
     LinkvertiseURL      = "LINKVERTISE_LINK", -- Linkvertise link
     LinkvertiseDuration = "6h",               -- label shown on the card
-    LootLabsURL         = "LOOTLABS_LINK",    -- LootLabs link
+    LootLabsURL         = "https://lootdest.org/s?kodlMSyp",    -- LootLabs link
     LootLabsDuration    = "12h",              -- label shown on the card
 
     -- [4] Social Media Settings (Set to true to show, false to hide)
